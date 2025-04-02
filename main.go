@@ -8,28 +8,32 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type model struct {
-	choices  []string         // items on the to-do list
-	cursor   int              // which to-do list item our cursor is pointing at
-	selected map[int]struct{} // which to-do items are selected
+	choices     []string // items on the to-do list
+	stagedItems []string
+	cursor      int // which to-do list item our cursor is pointing at
+	height      int
+	offset      int
+	selected    map[int]struct{} // which to-do items are selected
+	warning     string
 }
 
 func initialModel(status []string) model {
 	return model{
-		// Our to-do list is a grocery list
-		choices: status,
-
-		// A map which indicates which choices are selected. We're using
-		// the  map like a mathematical set. The keys refer to the indexes
-		// of the `choices` slice, above.
-		selected: make(map[int]struct{}),
+		choices:     status,
+		selected:    make(map[int]struct{}),
+		warning:     "",
+		height:      3,
+		offset:      0,
+		stagedItems: []string{"file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt", "file6.txt"},
 	}
 }
 
 func main() {
-	cmd := exec.Command("git", "status", "--porcelain")
+	cmd := exec.Command("git", "status", "--porcelain", "-uall")
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -41,7 +45,7 @@ func main() {
 
 	status := gitStatusParser(string(output))
 
-	p := tea.NewProgram(initialModel(status))
+	p := tea.NewProgram(initialModel(status), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
@@ -55,6 +59,9 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
+	case tea.WindowSizeMsg:
+		m.height = msg.Height - 5
 
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -70,23 +77,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
+				if m.cursor < m.offset {
+					m.offset--
+				}
 			}
 
 		// The "down" and "j" keys move the cursor down
 		case "down", "j":
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
+				if m.cursor >= m.offset+m.height {
+					m.offset++
+				}
 			}
 
 		// The "enter" key and the spacebar (a literal space) toggle
 		// the selected state for the item that the cursor is pointing at.
 		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
+			status, filepath := interpretGitStatus(m.choices[m.cursor])
+
+			if status == "A " || status == "M " || status == "MM" || status == "D " {
+				runGitRestoreStagedFile(filepath)
+				updatedStatus := runGitStatus(filepath)
+				m.choices[m.cursor] = updatedStatus[:len(updatedStatus)-1]
 			}
+
+			if status == "??" || status == " M" || status == " D" {
+				runGitAdd(filepath)
+				updatedStatus := runGitStatus(filepath)
+				m.choices[m.cursor] = updatedStatus[:len(updatedStatus)-1]
+			}
+			//comment for test
 		}
 	}
 
@@ -97,32 +118,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	// The header
-	s := "What should we buy at the market?\n\n"
+	s := "Stage/Unstage files\n\n"
 
-	// Iterate over our choices
-	for i, choice := range m.choices {
-
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
-		}
-
-		// Is this choice selected?
-		checked := " " // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+	end := m.offset + m.height
+	if end > len(m.choices) {
+		end = len(m.choices)
 	}
 
-	// The footer
-	s += "\nPress q to quit.\n"
+	for i := m.offset; i < end; i++ {
+		cursor := " " // no cursor by default
+		if i == m.cursor {
+			cursor = ">" // cursor indicator
+		}
+		s += fmt.Sprintf("%s %s\n", cursor, m.choices[i])
+	}
 
-	// Send the UI for rendering
-	return s
+	stagedItemView := "Staged Items\n\n"
+
+	for i := range m.stagedItems {
+		stagedItemView += m.stagedItems[i] + "\n"
+	}
+
+	layout := lipgloss.JoinHorizontal(lipgloss.Left, s, stagedItemView)
+
+	return layout
 }
 
 func gitStatusParser(str string) []string {
@@ -134,10 +153,6 @@ func gitStatusParser(str string) []string {
 	for scanner.Scan() {
 		line := scanner.Text()
 		status = append(status, line)
-		for _, ch := range line {
-			fmt.Printf("%c ", ch)
-		}
-		fmt.Println()
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -145,4 +160,45 @@ func gitStatusParser(str string) []string {
 	}
 
 	return status
+}
+
+func runGitAdd(filepath string) {
+	cmd := exec.Command("git", "add", filepath)
+
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error running git add:", err)
+		return
+	}
+}
+
+func runGitRestoreStagedFile(filepath string) {
+	cmd := exec.Command("git", "restore", "--staged", filepath)
+
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error running git restore:", err)
+		return
+	}
+
+	// fmt.Println("Restored " + filepath)
+}
+
+func runGitStatus(filepath string) string {
+	cmd := exec.Command("git", "status", "--porcelain", filepath)
+
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return ""
+	}
+
+	// status := gitStatusParser(string(output))
+
+	return string(output)
+}
+
+func interpretGitStatus(cmdOutputStr string) (status string, filepath string) {
+	status = cmdOutputStr[0:2]
+	filepath = cmdOutputStr[3:]
+
+	return status, filepath
 }
