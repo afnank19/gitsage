@@ -17,6 +17,7 @@ type model struct {
 	mode         string
 	windowWidth  int
 	windowHeight int
+	status       string
 }
 
 func initialModel(status []string) model {
@@ -25,10 +26,13 @@ func initialModel(status []string) model {
 		StageModel:  internal.InitialStageModel(status),
 		CommitModel: internal.InitialCommitModel(),
 		mode:        "ADD",
+		status:      "IDLE",
 	}
 }
 
 func main() {
+	// internal.RunGitPush()
+
 	cmd := exec.Command("git", "status", "--porcelain", "-uall")
 
 	output, err := cmd.Output()
@@ -37,7 +41,7 @@ func main() {
 		return
 	}
 
-	fmt.Println(string(output))
+	// fmt.Println(string(output))
 
 	status := internal.GitStatusParser(string(output))
 
@@ -71,6 +75,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// These keys should exit the program.
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "P":
+			if m.mode == "ADD" {
+				m.status = "Attempting to PUSH"
+				m.status = internal.RunGitPush()
+			}
 
 		case "c":
 			if m.mode == "ADD" {
@@ -111,9 +120,9 @@ func (m model) View() string {
 		view = m.CommitModel.View()
 	}
 
-	mode := "\n" + internal.ModeLabel.Render("MODE:") + statusStyle.Render(" "+m.mode)
+	mode := " | " + internal.ModeLabel.Render("MODE:") + statusStyle.Render(" "+m.mode)
 
-	view = view + mode
+	view = view + internal.ModeLabel.Render("\nSTATUS: ") + m.status + mode
 	view = lipgloss.PlaceVertical(m.windowHeight, lipgloss.Center, view)
 
 	return view

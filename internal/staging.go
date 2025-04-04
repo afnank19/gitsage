@@ -27,6 +27,7 @@ type StageModel struct {
 	stagedFiles  list
 	focus        int
 	gitAddToggle bool
+	currBranch   string
 }
 
 type StageUpdateMsg struct {
@@ -49,6 +50,7 @@ func InitialStageModel(status []string) StageModel {
 			cursor: 0,
 		},
 		gitAddToggle: false,
+		currBranch:   getCurrentBranch(),
 	}
 }
 
@@ -145,7 +147,7 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.stagedFiles.items = remove(m.stagedFiles.items, filepath)
 				}
 
-				if status == "??" || status == " M" || status == " D" {
+				if status == "??" || status == " M" || status == " D" || status == "AM" {
 					runGitAdd(filepath)
 					updatedStatus := runGitStatus(filepath)
 					m.files.items[m.files.cursor] = updatedStatus[:len(updatedStatus)-1]
@@ -222,11 +224,12 @@ func (m StageModel) View() string {
 	// Layout stuff
 	layout := lipgloss.JoinHorizontal(lipgloss.Top, s, stagedItemView)
 
-	testStr := "[a] - toggle git add all, [c] - COMMIT mode, [enter]/[space] - toggle staging, [q] - quit"
+	testStr := "[a] - toggle git add all, [c] - COMMIT mode, [P] - git push, [enter]/[space] - toggle staging, [q] - quit"
 	testStr = help.Render(testStr)
 	// testStr += testStr
+	branch := "\nBranch: " + m.currBranch
 
-	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr)
+	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr+branch)
 
 	return output
 }

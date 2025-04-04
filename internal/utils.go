@@ -1,6 +1,11 @@
 package internal
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"bufio"
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 func remove(s []string, target string) []string {
 	for i, v := range s {
@@ -21,4 +26,22 @@ const OK_CODE = 0
 
 func StatusStyle(width int) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).Width(width).Bold(true)
+}
+
+func splitByNewlines(str string) []string {
+	reader := strings.NewReader(str)
+	scanner := bufio.NewScanner(reader)
+
+	var status []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		status = append(status, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		// fmt.Println("Error reading string:", err)
+	}
+
+	return status
 }
