@@ -27,6 +27,7 @@ type StageModel struct {
 	stagedFiles  list
 	focus        int
 	gitAddToggle bool
+	currBranch   string
 }
 
 type StageUpdateMsg struct {
@@ -49,6 +50,7 @@ func InitialStageModel(status []string) StageModel {
 			cursor: 0,
 		},
 		gitAddToggle: false,
+		currBranch:   getCurrentBranch(),
 	}
 }
 
@@ -225,8 +227,9 @@ func (m StageModel) View() string {
 	testStr := "[a] - toggle git add all, [c] - COMMIT mode, [P] - git push, [enter]/[space] - toggle staging, [q] - quit"
 	testStr = help.Render(testStr)
 	// testStr += testStr
+	branch := "\nBranch: " + m.currBranch
 
-	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr)
+	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr+branch)
 
 	return output
 }
