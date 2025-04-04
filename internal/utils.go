@@ -7,6 +7,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type StatusMsg struct {
+	Message string
+}
+
 func remove(s []string, target string) []string {
 	for i, v := range s {
 		if v == target {
@@ -14,6 +18,13 @@ func remove(s []string, target string) []string {
 		}
 	}
 	return s
+}
+
+func trimFirstLast(s string) string {
+	if len(s) <= 2 {
+		return "" // Return empty if string is too short
+	}
+	return s[1 : len(s)-1]
 }
 
 var pointer = lipgloss.NewStyle().Foreground(lipgloss.Color("#eb6f92"))

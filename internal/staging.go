@@ -13,7 +13,7 @@ var border = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderFore
 var activeBorder = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#9ccfd8"))
 var stagedItem = lipgloss.NewStyle().Foreground(lipgloss.Color("#c4a7e7"))
 
-var title = lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).PaddingRight(25)
+var title = lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).PaddingRight(20)
 
 type list struct {
 	items  []string
@@ -24,7 +24,8 @@ type list struct {
 
 type StageModel struct {
 	files        list
-	stagedFiles  list
+	branches     list
+	commits      list
 	focus        int
 	gitAddToggle bool
 	currBranch   string
@@ -43,8 +44,14 @@ func InitialStageModel(status []string) StageModel {
 			offset: 0,
 			cursor: 0,
 		},
-		stagedFiles: list{
-			items:  checkStagedFiles(status),
+		branches: list{
+			items:  GetAllBranches(),
+			height: 3,
+			offset: 0,
+			cursor: 0,
+		},
+		commits: list{
+			items:  getBranchCommits(),
 			height: 3,
 			offset: 0,
 			cursor: 0,
@@ -66,14 +73,15 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.files.items = runGitStatusUAll()
 			m.files.cursor = 0
 			m.files.offset = 0
-			m.stagedFiles.items = checkStagedFiles(m.files.items)
-			m.stagedFiles.cursor = 0
-			m.stagedFiles.offset = 0
+			// m.branches.items = checkbranches(m.files.items)
+			m.branches.cursor = 0
+			m.branches.offset = 0
 		}
 
 	case tea.WindowSizeMsg:
 		m.files.height = msg.Height - 7
-		m.stagedFiles.height = msg.Height - 7
+		m.branches.height = msg.Height - 7
+		m.commits.height = msg.Height - 7
 
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -94,7 +102,7 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.gitAddToggle = true
 			}
 			m.files.items = runGitStatusUAll()
-			m.stagedFiles.items = checkStagedFiles(m.files.items)
+			// m.branches.items = checkbranches(m.files.items)
 
 		case "up", "k":
 			if m.focus == 0 {
@@ -105,10 +113,10 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			} else if m.focus == 1 {
-				if m.stagedFiles.cursor > 0 {
-					m.stagedFiles.cursor--
-					if m.stagedFiles.cursor < m.stagedFiles.offset {
-						m.stagedFiles.offset--
+				if m.branches.cursor > 0 {
+					m.branches.cursor--
+					if m.branches.cursor < m.branches.offset {
+						m.branches.offset--
 					}
 				}
 			}
@@ -122,10 +130,10 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			} else if m.focus == 1 {
-				if m.stagedFiles.cursor < len(m.stagedFiles.items)-1 {
-					m.stagedFiles.cursor++
-					if m.stagedFiles.cursor >= m.stagedFiles.offset+m.stagedFiles.height {
-						m.stagedFiles.offset++
+				if m.branches.cursor < len(m.branches.items)-1 {
+					m.branches.cursor++
+					if m.branches.cursor >= m.branches.offset+m.branches.height {
+						m.branches.offset++
 					}
 				}
 			}
@@ -144,15 +152,33 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					runGitRestoreStagedFile(filepath)
 					updatedStatus := runGitStatus(filepath)
 					m.files.items[m.files.cursor] = updatedStatus[:len(updatedStatus)-1]
-					m.stagedFiles.items = remove(m.stagedFiles.items, filepath)
+					// m.branches.items = remove(m.branches.items, filepath)
 				}
 
 				if status == "??" || status == " M" || status == " D" || status == "AM" {
 					runGitAdd(filepath)
 					updatedStatus := runGitStatus(filepath)
 					m.files.items[m.files.cursor] = updatedStatus[:len(updatedStatus)-1]
-					m.stagedFiles.items = append(m.stagedFiles.items, filepath)
+					// m.branches.items = append(m.branches.items, filepath)
 				}
+			} else if m.focus == 1 { // Change branch mode
+				stagedItems := checkStagedFiles(m.files.items)
+
+				branch := trimFirstLast(m.branches.items[m.branches.cursor])
+				fmt.Print(branch)
+				if len(stagedItems) == 0 { // staged items don't exist
+					code := runGitCheckout(branch)
+					if code == -1 {
+						// cannot switch branch
+						return m, func() tea.Msg { return StatusMsg{Message: "Error: Potential Conflict between branches"} }
+					}
+					m.currBranch = getCurrentBranch()
+
+				} else {
+					// change app status to let user know
+					return m, func() tea.Msg { return StatusMsg{Message: "There are STAGED items, UNSTAGE to change branch"} }
+				}
+
 			}
 			//comment for test
 		}
@@ -197,32 +223,54 @@ func (m StageModel) View() string {
 	}
 
 	// Staged Item List View logic
-	stagedItemView := "(2) STAGED FILES"
-	stagedItemView = title.Render(stagedItemView)
-	stagedItemView += "\n"
+	branchListView := "(2) LOCAL BRANCHES"
+	branchListView = title.Render(branchListView)
+	branchListView += "\n"
 
-	end = min(m.stagedFiles.offset+m.stagedFiles.height, len(m.stagedFiles.items))
+	end = min(m.branches.offset+m.branches.height, len(m.branches.items))
 
-	for i := m.stagedFiles.offset; i < end; i++ {
+	for i := m.branches.offset; i < end; i++ {
 		cursor := " "
-		currItem := m.stagedFiles.items[i]
-		if i == m.stagedFiles.cursor {
+		currItem := m.branches.items[i]
+
+		if m.currBranch == trimFirstLast(currItem) {
+			currItem = stagedItem.Render(currItem)
+		}
+
+		if i == m.branches.cursor {
 			cursor = pointer.Render(">")
 			currItem = cursorStyle.Render(currItem)
 		}
-		stagedItemView += fmt.Sprintf("%s %s\n", cursor, currItem)
+
+		branchListView += fmt.Sprintf("%s %s\n", cursor, currItem)
 	}
 
-	stagedItemView = margin.Render(stagedItemView)
+	branchListView = margin.Render(branchListView)
 
 	if m.focus == 1 {
-		stagedItemView = activeBorder.Render(stagedItemView)
+		branchListView = activeBorder.Render(branchListView)
 	} else {
-		stagedItemView = border.Render(stagedItemView)
+		branchListView = border.Render(branchListView)
 	}
 
 	// Layout stuff
-	layout := lipgloss.JoinHorizontal(lipgloss.Top, s, stagedItemView)
+	layout := lipgloss.JoinHorizontal(lipgloss.Top, s, branchListView)
+
+	// Commit History View
+	commitHistView := buildCommitHistoryView(m.commits)
+
+	if m.focus == 2 {
+		commitHistView = activeBorder.Render(commitHistView)
+	} else {
+		commitHistView = border.Render(commitHistView)
+	}
+
+	commitHeight := lipgloss.Height(commitHistView)
+	terminalHeight := m.files.height + 3
+
+	if commitHeight+lipgloss.Height(layout) < terminalHeight {
+		layout = lipgloss.JoinVertical(lipgloss.Top, layout, commitHistView)
+	}
 
 	testStr := "[a] - toggle git add all, [c] - COMMIT mode, [P] - git push, [enter]/[space] - toggle staging, [q] - quit"
 	testStr = help.Render(testStr)
