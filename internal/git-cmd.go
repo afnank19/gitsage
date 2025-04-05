@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+func CheckIfGitRepo() bool {
+	cmd := exec.Command("git", "rev-parse", "--show-top-level")
+	_, err := cmd.Output()
+	return err == nil
+}
+
 func runGitStatusUAll() []string {
 	cmd := exec.Command("git", "status", "--porcelain", "-uall")
 
