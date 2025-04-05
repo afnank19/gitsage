@@ -31,7 +31,10 @@ func initialModel(status []string) model {
 }
 
 func main() {
-	// internal.GetAllBranches()
+	if !internal.CheckIfGitRepo() {
+		fmt.Println("No git repo found in current directory, or any parent directory")
+		os.Exit(1)
+	}
 
 	cmd := exec.Command("git", "status", "--porcelain", "-uall")
 
@@ -39,9 +42,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
-	}
-
-	// fmt.Println(string(output))
+	}	
 
 	status := internal.GitStatusParser(string(output))
 
