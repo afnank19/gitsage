@@ -1,0 +1,34 @@
+# .goreleaser.yml
+project_name: gitsage
+
+builds:
+  - main: ./main.go
+    binary: gs
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - install.sh
+
+checksum:
+  name_template: "checksums.txt"
+
+# Optionally, you can add a release section if you're publishing to GitHub
+release:
+  prerelease: auto
+  github:
+    owner: afnank19
+    name: gitsage
+
+# Changelog can be automatically generated too
+changelog:
+  sort: asc
