@@ -31,7 +31,7 @@ func initialModel(status []string) model {
 }
 
 func main() {
-	// internal.RunGitPush()
+	// internal.GetAllBranches()
 
 	cmd := exec.Command("git", "status", "--porcelain", "-uall")
 
@@ -63,6 +63,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case internal.CommitUpdateMsg:
 		m.mode = msg.NewMode
 		return m, func() tea.Msg { return internal.StageUpdateMsg{Reset: true} }
+
+	case internal.StatusMsg:
+		m.status = msg.Message
 
 	case tea.WindowSizeMsg:
 		m.windowWidth = msg.Width

@@ -71,8 +71,6 @@ func runGitStatus(filepath string) string {
 		return ""
 	}
 
-	// status := gitStatusParser(string(output))
-
 	return string(output)
 }
 
@@ -117,6 +115,40 @@ func getCurrentBranch() string {
 	branchName = []byte(strings.TrimSpace(string(branchName)))
 
 	return string(branchName)
+}
+
+func GetAllBranches() []string {
+	cmd := exec.Command("git", "branch", "--format='%(refname:short)'")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	branches := splitByNewlines(string(output))
+
+	return branches
+}
+
+func runGitCheckout(branch string) int {
+	cmd := exec.Command("git", "checkout", branch)
+	if err := cmd.Run(); err != nil {
+		// fmt.Println("Error running git restore:", err)
+		return ERROR_CODE
+	}
+
+	return OK_CODE
+}
+
+func getBranchCommits() []string {
+	cmd := exec.Command("git", "log", `--pretty=format:"%h %cr %s"`)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	commitHistory := splitByNewlines(string(out))
+
+	return commitHistory
 }
 
 // This function is hard-coded for remote "origin"
