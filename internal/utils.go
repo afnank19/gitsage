@@ -34,6 +34,7 @@ var help = lipgloss.NewStyle().Foreground(lipgloss.Color("#908caa"))
 
 const ERROR_CODE = -1
 const OK_CODE = 0
+const MAX_LINE = 6
 
 func StatusStyle(width int) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).Width(width).Bold(true)

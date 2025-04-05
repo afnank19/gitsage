@@ -29,6 +29,7 @@ type StageModel struct {
 	focus        int
 	gitAddToggle bool
 	currBranch   string
+	termHeight int
 }
 
 type StageUpdateMsg struct {
@@ -79,9 +80,10 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.files.height = msg.Height - 7
-		m.branches.height = msg.Height - 7
-		m.commits.height = msg.Height - 7
+		m.files.height = min(msg.Height - 7, MAX_LINE)
+		m.branches.height = min(msg.Height - 7, MAX_LINE)
+		m.commits.height = min(msg.Height - 7, MAX_LINE)
+		m.termHeight = msg.Height
 
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -266,9 +268,9 @@ func (m StageModel) View() string {
 	}
 
 	commitHeight := lipgloss.Height(commitHistView)
-	terminalHeight := m.files.height + 3
+	// terminalHeight := m.files.height + 3
 
-	if commitHeight+lipgloss.Height(layout) < terminalHeight {
+	if commitHeight+lipgloss.Height(layout) < m.termHeight {
 		layout = lipgloss.JoinVertical(lipgloss.Top, layout, commitHistView)
 	}
 
