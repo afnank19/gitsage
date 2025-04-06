@@ -29,7 +29,7 @@ type StageModel struct {
 	focus        int
 	gitAddToggle bool
 	currBranch   string
-	termHeight int
+	termHeight   int
 }
 
 type StageUpdateMsg struct {
@@ -80,9 +80,9 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.files.height = min(msg.Height - 7, MAX_LINE)
-		m.branches.height = min(msg.Height - 7, MAX_LINE)
-		m.commits.height = min(msg.Height - 7, MAX_LINE)
+		m.files.height = min(msg.Height-7, MAX_LINE)
+		m.branches.height = min(msg.Height-7, MAX_LINE)
+		m.commits.height = min(msg.Height-7, MAX_LINE)
 		m.termHeight = msg.Height
 
 	// Is it a key press?
@@ -175,6 +175,7 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, func() tea.Msg { return StatusMsg{Message: "Error: Potential Conflict between branches"} }
 					}
 					m.currBranch = getCurrentBranch()
+					m.commits.items = getBranchCommits()
 
 				} else {
 					// change app status to let user know
