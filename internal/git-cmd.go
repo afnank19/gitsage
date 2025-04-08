@@ -146,7 +146,9 @@ func runGitCheckout(branch string) int {
 }
 
 func getBranchCommits() []string {
-	cmd := exec.Command("git", "log", `--pretty=format:"%h %cr %s"`)
+	branch := getCurrentBranch()
+
+	cmd := exec.Command("git", "log", branch, `--pretty=format:"%h %cr %s"`)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil
