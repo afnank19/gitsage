@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -14,6 +15,8 @@ var activeBorder = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Bord
 var stagedItem = lipgloss.NewStyle().Foreground(lipgloss.Color("#c4a7e7"))
 
 var title = lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).PaddingRight(20)
+
+type tickMsg time.Time
 
 type list struct {
 	items  []string
@@ -62,13 +65,23 @@ func InitialStageModel(status []string) StageModel {
 	}
 }
 
+func scheduledTick() tea.Cmd {
+	return tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
 func (m StageModel) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
-	return nil
+	return scheduledTick()
 }
 
 func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tickMsg:
+		m.files.items = runGitStatusUAll()
+		return m, scheduledTick()
+
 	case StageUpdateMsg:
 		if msg.Reset {
 			m.files.items = runGitStatusUAll()
@@ -77,6 +90,9 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// m.branches.items = checkbranches(m.files.items)
 			m.branches.cursor = 0
 			m.branches.offset = 0
+			m.commits.items = getBranchCommits()
+			m.commits.cursor = 0
+			m.commits.offset = 0
 		}
 
 	case tea.WindowSizeMsg:

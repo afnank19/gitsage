@@ -40,9 +40,11 @@ func main() {
 
 	output, err := cmd.Output()
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("An ERROR occurred while starting the program :(")
+		fmt.Println("> This is likely due to your git repo being bad\n> Last Cmd: git status --porcelain -uall")
+		fmt.Println("DEBUG: Error thrown by Cmd:", err)
 		return
-	}	
+	}
 
 	status := internal.GitStatusParser(string(output))
 
