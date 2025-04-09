@@ -83,8 +83,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "P":
 			if m.mode == "ADD" {
-				m.status = "Attempting to PUSH"
+				m.mode = "PUSH"
 				m.status = internal.RunGitPush()
+				m.mode = "ADD"
 			}
 
 		case "c":
