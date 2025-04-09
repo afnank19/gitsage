@@ -124,42 +124,28 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "up", "k":
 			if m.focus == 0 {
-				if m.files.cursor > 0 {
-					m.files.cursor--
-					if m.files.cursor < m.files.offset {
-						m.files.offset--
-					}
-				}
+				scrollListDown(&m.files)
 			} else if m.focus == 1 {
-				if m.branches.cursor > 0 {
-					m.branches.cursor--
-					if m.branches.cursor < m.branches.offset {
-						m.branches.offset--
-					}
-				}
+				scrollListDown(&m.branches)
+			} else if m.focus == 2 {
+				scrollListDown(&m.commits)
 			}
 
 		case "down", "j":
 			if m.focus == 0 {
-				if m.files.cursor < len(m.files.items)-1 {
-					m.files.cursor++
-					if m.files.cursor >= m.files.offset+m.files.height {
-						m.files.offset++
-					}
-				}
+				scrollListUp(&m.files)
 			} else if m.focus == 1 {
-				if m.branches.cursor < len(m.branches.items)-1 {
-					m.branches.cursor++
-					if m.branches.cursor >= m.branches.offset+m.branches.height {
-						m.branches.offset++
-					}
-				}
+				scrollListUp(&m.branches)
+			} else if m.focus == 2 {
+				scrollListUp(&m.commits)
 			}
 
 		case "1":
 			m.focus = 0
 		case "2":
 			m.focus = 1
+		case "3":
+			m.focus = 2
 		// The "enter" key and the spacebar (a literal space) toggle
 		// the selected state for the item that the cursor is pointing at.
 		case "enter", " ":
@@ -299,4 +285,22 @@ func (m StageModel) View() string {
 	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr+branch)
 
 	return output
+}
+
+func scrollListDown(list *list) {
+	if list.cursor > 0 {
+		list.cursor--
+		if list.cursor < list.offset {
+			list.offset--
+		}
+	}
+}
+
+func scrollListUp(list *list) {
+	if list.cursor < len(list.items)-1 {
+		list.cursor++
+		if list.cursor >= list.offset+list.height {
+			list.offset++
+		}
+	}
 }
