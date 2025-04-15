@@ -149,7 +149,7 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// The "enter" key and the spacebar (a literal space) toggle
 		// the selected state for the item that the cursor is pointing at.
 		case "enter", " ":
-			if m.focus == 0 {
+			if m.focus == 0 && len(m.files.items) > 0 {
 				status, filepath := interpretGitStatus(m.files.items[m.files.cursor])
 
 				if status == "A " || status == "M " || status == "MM" || status == "D " {
