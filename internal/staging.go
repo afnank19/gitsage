@@ -96,9 +96,9 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.files.height = min(msg.Height-7, MAX_LINE)
-		m.branches.height = min(msg.Height-7, MAX_LINE)
-		m.commits.height = min(msg.Height-7, MAX_LINE)
+		m.files.height = min(msg.Height-7, msg.Height/2 - 7)
+		m.branches.height = min(msg.Height-7, msg.Height/2 - 7)
+		m.commits.height = min(msg.Height-7, msg.Height/2 - 7)
 		m.termHeight = msg.Height
 
 	// Is it a key press?
