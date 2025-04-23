@@ -168,6 +168,9 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.focus == 1 { // Change branch mode
 				stagedItems := checkStagedFiles(m.files.items)
 
+				if len(m.branches.items) <= 0 {
+					return m, func() tea.Msg { return StatusMsg{Message: "NO branch switching (No branch has a commit)"} }
+				}
 				branch := trimFirstLast(m.branches.items[m.branches.cursor])
 				fmt.Print(branch)
 				if len(stagedItems) == 0 { // staged items don't exist
