@@ -18,10 +18,6 @@ Plenty of tools exist that do everything this tool can do? But let's be real, yo
 3. Edit environment variables
 4. Add a new PATH to the binary you just placed
 
-```bash
-  npm install my-project
-  cd my-project
-```
 
 ## Usage
 
@@ -49,7 +45,7 @@ Note: Works best if your terminal has some height and width. Issues occur on ver
 
 - Push Support (Done)
 - Branch Viewer (Done)
-- Commit History (Done, not scrollable yet)
+- Commit History (Done)
 - Themes (Unsure)
 
 ## Contributing
