@@ -30,12 +30,14 @@ func (m CommitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			if len(m.message) < 1 {
-				return m, nil
+				return m, func() tea.Msg { return StatusMsg{Message: "Add a message before commiting!"} }
 			}
 			statusCode := runGitCommit(m.message)
 			if statusCode != -1 {
 				m.message = ""
 				return m, func() tea.Msg { return CommitUpdateMsg{NewMode: "ADD"} }
+			} else {
+				return m, func() tea.Msg { return StatusMsg{Message: "Nothing to commit, stage changed first perhaps?"} }
 			}
 
 		case "backspace":
@@ -60,7 +62,7 @@ func (m CommitModel) View() string {
 
 	out := s + "\n" + helpText
 
-	view := lipgloss.PlaceVertical(0, lipgloss.Bottom, out)
+	view := lipgloss.PlaceVertical(0, lipgloss.Top, out)
 
 	return view
 }

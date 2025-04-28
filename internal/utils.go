@@ -11,6 +11,8 @@ type StatusMsg struct {
 	Message string
 }
 
+type GitPushStatus string
+
 func remove(s []string, target string) []string {
 	for i, v := range s {
 		if v == target {
@@ -31,10 +33,12 @@ var pointer = lipgloss.NewStyle().Foreground(lipgloss.Color("#eb6f92"))
 var blink = lipgloss.NewStyle().Blink(true)
 var ModeLabel = lipgloss.NewStyle().Foreground(lipgloss.Color("#eb6f92")).Bold(true)
 var help = lipgloss.NewStyle().Foreground(lipgloss.Color("#908caa"))
+var branchStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#f6c177"))
 
 const ERROR_CODE = -1
 const OK_CODE = 0
 const MAX_LINE = 6
+const VIEW_BREAKPOINT = 20
 
 func StatusStyle(width int) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("#ebbcba")).Width(width).Bold(true)
