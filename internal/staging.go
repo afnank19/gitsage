@@ -96,9 +96,15 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.files.height = min(msg.Height-7, msg.Height/2 - 7)
-		m.branches.height = min(msg.Height-7, msg.Height/2 - 7)
-		m.commits.height = min(msg.Height-7, msg.Height/2 - 7)
+		m.files.height = min(msg.Height-7, msg.Height/2-7)
+		m.branches.height = min(msg.Height-7, msg.Height/2-7)
+		m.commits.height = min(msg.Height-7, msg.Height/2-7)
+
+		if msg.Height <= VIEW_BREAKPOINT {
+			m.files.height = msg.Height - 7
+			m.branches.height = msg.Height - 7
+		}
+
 		m.termHeight = msg.Height
 
 	// Is it a key press?
@@ -153,10 +159,16 @@ func (m StageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				status, filepath := interpretGitStatus(m.files.items[m.files.cursor])
 
 				if status == "A " || status == "M " || status == "MM" || status == "D " {
-					runGitRestoreStagedFile(filepath)
+					CODE := runGitRestoreStagedFile(filepath)
+					if CODE == -1 {
+
+						CODE = runGitResetFile(filepath)
+						if CODE == -1 {
+							return m, func() tea.Msg { return StatusMsg{Message: "Unable to restore staged changes"} }
+						}
+					}
 					updatedStatus := runGitStatus(filepath)
 					m.files.items[m.files.cursor] = updatedStatus[:len(updatedStatus)-1]
-					// m.branches.items = remove(m.branches.items, filepath)
 				}
 
 				if status == "??" || status == " M" || status == " D" || status == "AM" {
@@ -273,17 +285,17 @@ func (m StageModel) View() string {
 		commitHistView = border.Render(commitHistView)
 	}
 
-	commitHeight := lipgloss.Height(commitHistView)
+	_ = lipgloss.Height(commitHistView)
 	// terminalHeight := m.files.height + 3
 
-	if commitHeight+lipgloss.Height(layout) < m.termHeight {
+	if m.termHeight > VIEW_BREAKPOINT {
 		layout = lipgloss.JoinVertical(lipgloss.Top, layout, commitHistView)
 	}
 
 	testStr := "[a] - toggle git add all, [c] - COMMIT mode, [P] - git push, [enter]/[space] - toggle staging, [q] - quit"
 	testStr = help.Render(testStr)
 	// testStr += testStr
-	branch := "\nBranch: " + m.currBranch
+	branch := "\nBRANCH: " + branchStyle.Render(m.currBranch)
 
 	output := lipgloss.JoinVertical(lipgloss.Left, layout, testStr+branch)
 

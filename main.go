@@ -26,7 +26,7 @@ func initialModel(status []string) model {
 		StageModel:  internal.InitialStageModel(status),
 		CommitModel: internal.InitialCommitModel(),
 		mode:        "ADD",
-		status:      "IDLE",
+		status:      "OK",
 	}
 }
 
@@ -70,6 +70,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case internal.StatusMsg:
 		m.status = msg.Message
 
+	case internal.GitPushStatus:
+		m.status = string(msg)
+
 	case tea.WindowSizeMsg:
 		m.windowWidth = msg.Width
 		m.windowHeight = msg.Height
@@ -83,8 +86,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "P":
 			if m.mode == "ADD" {
-				m.status = "Attempting to PUSH"
-				m.status = internal.RunGitPush()
+				m.status = "Attempting to PUSH..."
+				return m, internal.RunGitPushCmd()
 			}
 
 		case "c":
@@ -129,7 +132,7 @@ func (m model) View() string {
 	mode := " | " + internal.ModeLabel.Render("MODE:") + statusStyle.Render(" "+m.mode)
 
 	view = view + internal.ModeLabel.Render("\nSTATUS: ") + m.status + mode
-	view = lipgloss.PlaceVertical(m.windowHeight, lipgloss.Center, view)
+	view = lipgloss.PlaceVertical(m.windowHeight, lipgloss.Top, view)
 
 	return view
 }

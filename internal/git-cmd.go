@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func CheckIfGitRepo() bool {
@@ -58,6 +60,19 @@ func runGitAdd(filepath string) int {
 
 func runGitRestoreStagedFile(filepath string) int {
 	cmd := exec.Command("git", "restore", "--staged", filepath)
+
+	if err := cmd.Run(); err != nil {
+		// fmt.Println("Error running git restore:", err)
+		return ERROR_CODE
+	}
+
+	// fmt.Println("Restored " + filepath)
+	return OK_CODE
+}
+
+// Can add a resetType if needed to use this else where
+func runGitResetFile(filepath string) int {
+	cmd := exec.Command("git", "reset", filepath)
 
 	if err := cmd.Run(); err != nil {
 		// fmt.Println("Error running git restore:", err)
@@ -157,6 +172,14 @@ func getBranchCommits() []string {
 	commitHistory := splitByNewlines(string(out))
 
 	return commitHistory
+}
+
+// This asynchronously runs git push status, so the UI doesnt freeze
+func RunGitPushCmd() tea.Cmd {
+	return func() tea.Msg {
+		status := RunGitPush()
+		return GitPushStatus(status)
+	}
 }
 
 // This function is hard-coded for remote "origin"
