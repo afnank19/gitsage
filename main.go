@@ -83,7 +83,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// These keys should exit the program.
 		case "ctrl+c", "q":
-			return m, tea.Quit
+			if m.mode == "ADD" {
+				return m, tea.Quit
+			}
 		case "P":
 			if m.mode == "ADD" {
 				m.status = "Attempting to PUSH..."
